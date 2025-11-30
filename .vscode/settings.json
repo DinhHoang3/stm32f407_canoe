@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "gpio_config.h": "c",
+        "rcc_config.h": "c",
+        "stub.h": "c"
+    }
+}

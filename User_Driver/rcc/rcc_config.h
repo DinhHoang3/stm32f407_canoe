@@ -60,9 +60,9 @@ typedef enum {
 
 #define AHB_PRESC              RCC_SYSCLK_NO_DIVIDED
 
-#define APB1_PRESC             RCC_AHB_NO_DIVIDED
+#define APB1_PRESC             RCC_AHB_DIVIDED_4
 
-#define APB2_PRESC             RCC_AHB_NO_DIVIDED
+#define APB2_PRESC             RCC_AHB_DIVIDED_2
 
 #define PLLM_PRESC             8
 
@@ -83,7 +83,7 @@ typedef enum {
 #define RCC_APB1ENR_I2C1        STD_OFF
 #define RCC_APB1ENR_UART5       STD_OFF
 #define RCC_APB1ENR_UART4       STD_OFF
-#define RCC_APB1ENR_USART3      STD_OFF
+#define RCC_APB1ENR_USART3      STD_ON
 #define RCC_APB1ENR_USART2      STD_OFF
 #define RCC_APB1ENR_SPI3        STD_OFF
 #define RCC_APB1ENR_SPI2        STD_OFF
