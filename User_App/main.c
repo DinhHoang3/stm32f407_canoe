@@ -1,26 +1,24 @@
-
-#include "stm32f407xx.h"
+#include <string.h>
 #include "stub.h"
-
+#include "rcc_config.h"
+#include "gpio_config.h"
+#include "uart_config.h"
 
 
 int main(void) {
-    // 1. B?t clock cho GPIOD (bit 3 trong RCC_AHB1ENR)
-    RCC->AHB1ENR |= (1 << 3);
-
-    // 2. C?u hình PD12 là Output (MODER12 = 01)
-    GPIOD->MODER &= ~(3 << (12 * 2));  // Xóa 2 bit
-    GPIOD->MODER |=  (1 << (12 * 2));  // Set bit 01
-
-    // 3. Push-Pull & No Pull-up/down (tu? ch?n)
-    GPIOD->OTYPER &= ~(1 << 12);       // Push-Pull
-    GPIOD->PUPDR &= ~(3 << (12 * 2));  // No Pull
+    Rcc_Init();
 		SysTick_DelayInit();
-    while(1) {
-        GPIOD->ODR |= (1 << 12);   // B?t LED
-        SysTick_Delay(500);
-
-        GPIOD->ODR &= ~(1 << 12);  // T?t LED
-        SysTick_Delay(500);
-    }sdasdasas
+    USART3_Init(9600);
+		Gpio_InitLed();
+    const char *msg = "Hello from USART3!\r\n";
+		Gpio_BlueLed_On();
+    USART3_SendBuffer((const uint8_t*)msg, strlen(msg));
+		
+    while(1) 
+		{
+        uint8_t c = USART3_RecvByteBlocking();  // nháº­n kÃ½ tá»±
+        USART3_SendByte(c);   
+    }
 }
+
+
