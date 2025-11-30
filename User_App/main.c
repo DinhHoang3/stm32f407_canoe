@@ -22,5 +22,5 @@ int main(void) {
 
         GPIOD->ODR &= ~(1 << 12);  // T?t LED
         SysTick_Delay(500);
-    }
+    }sdasdasas
 }
