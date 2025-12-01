@@ -11,14 +11,12 @@
 *                         LOCAL TYPEDEFS (DEFINE, STRUCTURES, UNIONS, ENUMS)
 ***************************************************************************************************/
  
-
-
+#define USART3_RX_BUF_SIZE 1024U
 
 /***************************************************************************************************
 *                                      GLOBAL VARIABLES
 ***************************************************************************************************/
  
-
  
 /***************************************************************************************************
 *                                   		PROTOTYPE
@@ -27,8 +25,12 @@
 void USART3_Init(uint32_t baudrate);
 void USART3_DeInit(void);
 void USART3_SendByte(uint8_t b);
-void USART3_SendBuffer(const uint8_t *buf, uint32_t len);
+void USART3_SendBuffer(uint8_t *buf);
 uint8_t USART3_RecvByteBlocking(void);
+uint8_t USART3_ReadBuffer(uint8_t *buf, uint32_t maxlen);
+
+void USART3_EnableRxIT(void);
+void USART3_DisableRxIT(void);
 
 /***************************************************************************************************
 *                                 	FUNCTIONS DEFINITIONS

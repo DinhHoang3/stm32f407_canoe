@@ -1,10 +1,11 @@
-
 /***************************************************************************************************
 *                                        INCLUDE FILES
 ***************************************************************************************************/
 
+#include <string.h>
 #include "uart_config.h"
 #include "stm32f4xx.h"
+#include "stub.h"
  
 /***************************************************************************************************
 *                         LOCAL TYPEDEFS (DEFINE, STRUCTURES, UNIONS, ENUMS)
@@ -15,7 +16,8 @@
 *                                      GLOBAL VARIABLES
 ***************************************************************************************************/
  
-
+static volatile uint32_t  rx_count = 0;
+static volatile uint8_t rx_buf[USART3_RX_BUF_SIZE];
  
 /***************************************************************************************************
 *                                   		INTERNAL PROTOTYPE
@@ -91,16 +93,15 @@ void USART3_Init(uint32_t baudrate)
     USART3->CR1 |= USART_CR1_UE;
 
     /* 9. Wait until TE/RE are effective (optional small delay) */
-    for (volatile int i = 0; i < 1000; ++i) __NOP();
+    SysTick_Delay(10);
 }
 
 /* Disable USART3 and optionally disable clock */
 void USART3_DeInit(void)
 {
     USART3->CR1 &= ~USART_CR1_UE;
-    /* optionally disable clock:
-       RCC->APB1ENR &= ~RCC_APB1ENR_USART3EN;
-    */
+    // optionally disable clock:
+    RCC->APB1ENR &= ~RCC_APB1ENR_USART3EN;
 }
 
 /* Blocking send one byte */
@@ -115,8 +116,10 @@ void USART3_SendByte(uint8_t b)
 }
 
 /* Send buffer (blocking) */
-void USART3_SendBuffer(const uint8_t *buf, uint32_t len)
+void USART3_SendBuffer(uint8_t *buf)
 {
+    uint32_t i = 0;
+    uint32_t len = strlen(buf);
     for (uint32_t i = 0; i < len; ++i) {
         /* Wait TXE */
         while (!(USART3->SR & USART_SR_TXE)) { }
@@ -134,4 +137,84 @@ uint8_t USART3_RecvByteBlocking(void)
     return val;
 }
 
+static int rx_buf_push(uint8_t b)
+{
+    if (rx_count >= USART3_RX_BUF_SIZE) 
+    {
+        return 0; /* full */
+    }
+    rx_buf[rx_count] = b;
+    rx_count++;
+    return 1;
+}
 
+/* Pop a string from ring buffer. Return 1 if ok, 0 if empty. */
+static int rx_buf_pop(uint8_t *b, uint32_t maxlen)
+{
+    uint32_t i = 0;
+    if (rx_count == 0) 
+    {
+        return 0;
+    }
+    NVIC_DisableIRQ(USART3_IRQn);
+    for (i = 0; i < maxlen; i++) 
+    {
+        b[i] = rx_buf[i];
+        rx_buf[i] = 0; /* optional: clear */
+        if(rx_count == 0)
+        {
+            break;
+        }
+        rx_count--;
+    }
+    NVIC_EnableIRQ(USART3_IRQn);
+    return 1;
+}
+
+uint8_t USART3_ReadBuffer(uint8_t *buf, uint32_t maxlen)
+{
+    uint8_t Retval = 0;
+    Retval = rx_buf_pop (buf, maxlen);
+    return Retval;
+}
+
+/* Public APIs */
+void USART3_EnableRxIT(void)
+{
+    /* Enable RXNE interrupt in USART3 */
+    USART3->CR1 |= USART_CR1_RXNEIE;
+
+    /* Enable NVIC IRQ for USART3 with medium priority */
+    NVIC_SetPriority(USART3_IRQn, 5); /* adjust priority as needed */
+    NVIC_EnableIRQ(USART3_IRQn);
+}
+
+void USART3_DisableRxIT(void)
+{
+    USART3->CR1 &= ~USART_CR1_RXNEIE;
+    NVIC_DisableIRQ(USART3_IRQn);
+}
+
+void USART3_IRQHandler(void)
+{
+    uint32_t sr = USART3->SR;
+
+    /* RXNE: Read data register - reading DR clears RXNE */
+    if (sr & USART_SR_RXNE)
+    {
+        uint8_t b = (uint8_t)(USART3->DR & 0xFF); /* reading DR clears RXNE */
+        /* push into ring buffer; if full, drop silently (or count overflow) */
+        rx_buf_push(b);
+    }
+
+    /* handle other IRQ sources if you enable them later (TXE, TC, ORE, etc) */
+    /* e.g., clear ORE by reading SR and DR if needed */
+    if (sr & USART_SR_ORE)
+    {
+        volatile uint32_t tmp = USART3->DR; (void)tmp; /* clear ORE by reading DR */
+    }
+}
+
+/***************************************************************************************************
+*                                 	END OF FILE
+***************************************************************************************************/
